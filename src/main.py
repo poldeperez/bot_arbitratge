@@ -4,6 +4,7 @@ import asyncio
 import time
 import json
 import logging
+from pathlib import Path
 from live_price_binance_ws import listen_binance_order_book
 from live_price_bybit_ws import listen_bybit_order_book
 from live_price_kraken_ws import listen_kraken_order_book
@@ -32,7 +33,9 @@ class LivePriceWatcher:
 async def check_opportunity_loop(watcher, taker_fee=0.001):
     logger = logging.getLogger("arbitrage")
     logger.setLevel(logging.INFO)
-    handler = logging.FileHandler("../logs/arbitrage_opportunities.log")
+    # Dynamically resolve the logs directory relative to this file
+    log_path = Path(__file__).parent.parent / "logs" / "arbitrage_opportunities.log"
+    handler = logging.FileHandler(log_path)
     handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
     if not logger.hasHandlers():
         logger.addHandler(handler)
