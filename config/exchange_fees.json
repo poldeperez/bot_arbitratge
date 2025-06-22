@@ -419,10 +419,10 @@
     "bybit": {
         "success": true,
         "fees": {
-            "tierBased": true,
+            "tierBased": false,
             "percentage": true,
-            "taker": 0.00075,
-            "maker": 0.0001,
+            "taker": 0.001,
+            "maker": 0.001,
             "feeSide": "get"
         }
     }

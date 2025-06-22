@@ -23,12 +23,6 @@ async def fetch_snapshot(symbol):
         async with session.get(url) as resp:
             return await resp.json()
 
-async def fetch_ticker(symbol):
-    url = f"https://api.binance.com/api/v3/ticker/bookTicker?symbol={symbol.upper()}"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            return await resp.json()
-
 async def listen_binance_order_book(watcher, symbol="btcusdt"):
     depth_url = f"wss://stream.binance.com:9443/ws/{symbol}@depth@100ms"
 
@@ -131,8 +125,6 @@ async def listen_binance_order_book(watcher, symbol="btcusdt"):
                 if current is None or current['bid'] != bid or current['ask'] != ask:
                     watcher.update_price('binance', bid, ask)
                     print(f"Binance Watcher updated: highest bid={bid}, lowest ask={ask}")
-                    ticker = await fetch_ticker(symbol)
-                    print(f"Binance Ticker: bid = {ticker['bidPrice']}, ask = {ticker['askPrice']}")
 
             except json.JSONDecodeError:
                 print("Error decoding JSON.")
