@@ -61,7 +61,7 @@ async def check_opportunity_loop(watcher, taker_fee=0.001):
         print(f"check_opportunity_loop iteration took {duration:.6f}")
         count += 1
         if count > 1000:
-            logger.info("Logging 1000 opportunities, exiting loop")
+            logger.info("Logging 1000 opportunities, exiting")
             count=0
         await asyncio.sleep(0.1)  # Sleep for X seconds to avoid busy waiting
 
