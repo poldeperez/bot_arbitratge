@@ -8,6 +8,7 @@ WORKDIR /app
 COPY . /app
 
 # Install dependencies if requirements.txt exists
+RUN mkdir -p /app/logs && chmod 777 /app/logs
 RUN if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
 
 # Run your main.py script
