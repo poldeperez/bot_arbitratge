@@ -10,6 +10,10 @@ from live_price_bybit_ws import listen_bybit_order_book
 from live_price_kraken_ws import listen_kraken_order_book
 from live_price_adv_cb_ws import listen_coinbase_order_book
 
+
+# Ensure logs directory exists
+(Path(__file__).parent.parent / "logs").mkdir(parents=True, exist_ok=True)
+
 class LivePriceWatcher:
     def __init__(self):
         self.prices = {}  # {exchange_id: {'bid': x, 'ask': y, timestamp: t}}
@@ -39,6 +43,7 @@ async def check_opportunity_loop(watcher, taker_fee=0.001):
     handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
     if not logger.hasHandlers():
         logger.addHandler(handler)
+    count = 0
     while True:
         start_time = time.time()
         bid, ask = watcher.get_best_opportunity()
@@ -54,6 +59,10 @@ async def check_opportunity_loop(watcher, taker_fee=0.001):
         end_time = time.time()
         duration = end_time - start_time
         print(f"check_opportunity_loop iteration took {duration:.6f}")
+        count += 1
+        if count > 1000:
+            logger.info("Logging 1000 opportunities, exiting loop")
+            count=0
         await asyncio.sleep(0.1)  # Sleep for X seconds to avoid busy waiting
 
 
