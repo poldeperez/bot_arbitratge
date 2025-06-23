@@ -44,6 +44,7 @@ async def check_opportunity_loop(watcher, taker_fee=0.001):
     if not logger.hasHandlers():
         logger.addHandler(handler)
     count = 0
+    logger.info("Logger test: This should appear in the log file.")
     while True:
         start_time = time.time()
         bid, ask = watcher.get_best_opportunity()
@@ -78,6 +79,14 @@ async def main():
         )
     except asyncio.CancelledError:
         print("Tasks cancelled, exiting main")
+    
+    except Exception as e:
+        logging.exception(f"Unhandled exception in main: {e}")
+        print(f"Unhandled exception: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        logging.exception(f"Fatal error: {e}")
+        print(f"Fatal error: {e}")
