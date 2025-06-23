@@ -13,6 +13,7 @@ from live_price_adv_cb_ws import listen_coinbase_order_book
 
 # Ensure logs directory exists
 (Path(__file__).parent.parent / "logs").mkdir(parents=True, exist_ok=True)
+print("Logs directory path:", Path(__file__).parent.parent / "logs")
 
 class LivePriceWatcher:
     def __init__(self):
@@ -39,7 +40,10 @@ async def check_opportunity_loop(watcher, taker_fee=0.001):
     logger.setLevel(logging.INFO)
     # Dynamically resolve the logs directory relative to this file
     log_path = Path(__file__).parent.parent / "logs" / "arbitrage_opportunities.log"
-    handler = logging.FileHandler(log_path)
+    try:
+        handler = logging.FileHandler(log_path)
+    except Exception as e:
+        print(f"Failed to create log file handler: {e}")
     handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
     if not logger.hasHandlers():
         logger.addHandler(handler)
