@@ -12,51 +12,19 @@ from live_price_adv_cb_ws import listen_coinbase_order_book
 
 
 # Ensure logs directory exists
-# (Path(__file__).parent.parent / "logs").mkdir(parents=True, exist_ok=True)
-# print("Logs directory path:", Path(__file__).parent.parent / "logs")
-# logger = logging.getLogger("arbitrage")
-# logger.setLevel(logging.INFO)
-# # Dynamically resolve the logs directory relative to this file
-# log_path = Path(__file__).parent.parent / "logs" / "arbitrage_opportunities.log"
-# try:
-#     handler = logging.FileHandler(log_path)
-# except Exception as e:
-#     print(f"Failed to create log file handler: {e}")
-# handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
-# if not logger.hasHandlers():
-#     logger.addHandler(handler)
-
-# logging.basicConfig(level=logging.INFO)
-# logging.info("Logger test: This should appear in the console.")
-
-# Ensure logs directory exists
-logs_dir = Path(__file__).parent.parent / "logs"
-logs_dir.mkdir(parents=True, exist_ok=True)
-log_path = logs_dir / "arbitrage_opportunities.log"
-
-# Remove all handlers associated with the root logger object
-for handler in logging.root.handlers[:]:
-    logging.root.removeHandler(handler)
-
-# Set up logging to file and console
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s %(message)s',
-    handlers=[
-        logging.FileHandler(log_path),
-        logging.StreamHandler()
-    ]
-)
-
-logging.info("Logger test: This should appear in the log file and console.")
-
+(Path(__file__).parent.parent / "logs").mkdir(parents=True, exist_ok=True)
+print("Logs directory path:", Path(__file__).parent.parent / "logs")
+logger = logging.getLogger("arbitrage")
+logger.setLevel(logging.INFO)
+# Dynamically resolve the logs directory relative to this file
+log_path = Path(__file__).parent.parent / "logs" / "arbitrage_opportunities.log"
 try:
-    test_log_path = Path(__file__).parent.parent / "logs" / "test_write.log"
-    with open(test_log_path, "w") as f:
-        f.write("Test write\n")
-    print("Direct write to /app/logs/test_write.log succeeded.")
+    handler = logging.FileHandler(log_path)
 except Exception as e:
-    print(f"Direct write to /app/logs/test_write.log failed: {e}")
+    print(f"Failed to create log file handler: {e}")
+handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+if not logger.hasHandlers():
+    logger.addHandler(handler)
 
 
 # live_price_watcher
@@ -81,8 +49,7 @@ class LivePriceWatcher:
     
     
 async def check_opportunity_loop(watcher, taker_fee=0.001):
-    count = 0
-    #logger.info("Logger test: This should appear in the log file.")
+    logger.info("Starting check_opportunity_loop")
     while True:
         start_time = time.time()
         bid, ask = watcher.get_best_opportunity()
@@ -91,17 +58,13 @@ async def check_opportunity_loop(watcher, taker_fee=0.001):
             adj_ask = ask['price'] * (1 + taker_fee)
             profit = round(adj_bid, 2) - round(adj_ask, 2)
             if profit > 0:
-                #logger.info(f"Arbitrage opportunity! Profit: {profit:.2f} USDT | Buy on {ask['exchange']} at {ask['price']} | Sell on {bid['exchange']} at {bid['price']} | Prices: {json.dumps(watcher.prices)}")
+                logger.info(f"Arbitrage opportunity! Profit: {profit:.2f} USDT | Buy on {ask['exchange']} at {ask['price']} | Sell on {bid['exchange']} at {bid['price']} | Prices: {json.dumps(watcher.prices)}")
                 print(f"Arbitrage opportunity! Profit: {profit:.2f} USDT")
                 print(f"Buy on {ask['exchange']} at {ask['price']} | Sell on {bid['exchange']} at {bid['price']}")
                 print(json.dumps(watcher.prices, indent=2))
         end_time = time.time()
         duration = end_time - start_time
         print(f"check_opportunity_loop iteration took {duration:.6f}")
-        count += 1
-        if count > 1000:
-            #logger.info("Logging 1000 opportunities, exiting")
-            count=0
         await asyncio.sleep(0.1)  # Sleep for X seconds to avoid busy waiting
 
 

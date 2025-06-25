@@ -1,0 +1,18 @@
+services:
+  bot_arbitratge:
+    build: .
+    container_name: bot
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    # Uncomment and set if you want to map ports
+    # ports:
+    #   - "8000:8000"
+    # Add more volumes as needed, e.g.:
+    #   - ./data:/app/data
+    # Set user if you want to match host permissions
+    # user: "1000:1000"
+    command: ["python", "src/main.py"]
