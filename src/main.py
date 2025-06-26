@@ -51,7 +51,6 @@ class LivePriceWatcher:
 async def check_opportunity_loop(watcher, taker_fee=0.001):
     logger.info("Starting check_opportunity_loop")
     while True:
-        start_time = time.time()
         bid, ask = watcher.get_best_opportunity()
         if bid['exchange'] and ask['exchange']:
             adj_bid = bid['price'] * (1 - taker_fee)
@@ -62,9 +61,6 @@ async def check_opportunity_loop(watcher, taker_fee=0.001):
                 print(f"Arbitrage opportunity! Profit: {profit:.2f} USDT")
                 print(f"Buy on {ask['exchange']} at {ask['price']} | Sell on {bid['exchange']} at {bid['price']}")
                 print(json.dumps(watcher.prices, indent=2))
-        end_time = time.time()
-        duration = end_time - start_time
-        print(f"check_opportunity_loop iteration took {duration:.6f}")
         await asyncio.sleep(0.1)  # Sleep for X seconds to avoid busy waiting
 
 
