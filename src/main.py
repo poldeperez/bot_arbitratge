@@ -61,7 +61,7 @@ async def check_opportunity_loop(watcher, taker_fee=0.001):
                 print(f"Arbitrage opportunity! Profit: {profit:.2f} USDT")
                 print(f"Buy on {ask['exchange']} at {ask['price']} | Sell on {bid['exchange']} at {bid['price']}")
                 print(json.dumps(watcher.prices, indent=2))
-        await asyncio.sleep(0.1)  # Sleep for X seconds to avoid busy waiting
+        await asyncio.sleep(0.5)  # Sleep for X seconds to avoid busy waiting
 
 
 async def main():
