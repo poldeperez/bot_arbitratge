@@ -4,16 +4,23 @@ import websockets
 # Coinbase Advanced Trade WS without authentication
 async def listen_coinbase_order_book(watcher, symbol="BTC-USD"):
     url = "wss://advanced-trade-ws.coinbase.com"
-    subscribe_msg = {
-        "type": "subscribe",
-        "product_ids": [symbol],
-        "channel": "level2"
-    }
+    subscribe_msg = [
+        {
+            "type": "subscribe",
+            "product_ids": [symbol],
+            "channel": "level2"
+        },
+        {
+            "type": "subscribe",
+            "channel": "heartbeats"
+        }
+    ]
     order_book = None
     expected_sequence = 0
 
     async with websockets.connect(url, max_size=10 * 1024 * 1024) as ws:
-        await ws.send(json.dumps(subscribe_msg))
+        for msg in subscribe_msg:
+            await ws.send(json.dumps(msg))
         print("Connecting to Coinbase WebSocket.")
         while True:
             try:
@@ -38,7 +45,11 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD"):
                         # Recursive call to restart the listener
                         return await listen_coinbase_order_book(watcher, symbol)
 
-                if data.get("channel") == "l2_data":
+                if data.get("channel") == "heartbeats":
+                    expected_sequence += 1
+                    # Optionally, update a timestamp or status in your watcher here
+
+                elif data.get("channel") == "l2_data":
                     # Process events
                     for event in data.get("events", []):
                         if event.get("type") == "snapshot":

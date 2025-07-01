@@ -1,6 +1,7 @@
 services:
   bot_arbitratge:
     build: .
+    image: bot_arbitratge
     container_name: bot
     volumes:
       - ./logs:/app/logs
