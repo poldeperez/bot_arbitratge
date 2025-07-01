@@ -75,10 +75,10 @@ async def main():
     try:
         watcher = LivePriceWatcher()
         await asyncio.gather(
-            # listen_coinbase_order_book(watcher, symbol="ETH-USD"),
-            # listen_binance_order_book(watcher, symbol="ethusdt"),
+            listen_coinbase_order_book(watcher, symbol="ETH-USD"),
+            listen_binance_order_book(watcher, symbol="ethusdt"),
             listen_bybit_order_book(watcher, symbol="ETHUSDT"),
-            # listen_kraken_order_book(watcher, symbol=["ETH/USDT"]),
+            listen_kraken_order_book(watcher, symbol=["ETH/USDT"]),
             check_opportunity_loop(watcher, taker_fee=0.001)
         )
     except asyncio.CancelledError:
