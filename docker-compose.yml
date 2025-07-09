@@ -8,6 +8,7 @@ services:
       - ./config:/app/config
     environment:
       - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src
     restart: unless-stopped
     # Uncomment and set if you want to map ports
     # ports:
