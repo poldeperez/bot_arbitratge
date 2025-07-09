@@ -4,11 +4,12 @@ import asyncio
 import time
 import json
 import logging
-from logging_config import setup_logging
-from live_price_binance_ws import listen_binance_order_book
-from live_price_bybit_ws import listen_bybit_order_book
-from live_price_kraken_ws import listen_kraken_order_book
-from live_price_adv_cb_ws import listen_coinbase_order_book
+from src.logging_config import setup_logging
+from src.live_price_binance_ws import listen_binance_order_book
+from src.live_price_bybit_ws import listen_bybit_order_book
+from src.live_price_kraken_ws import listen_kraken_order_book
+from src.live_price_adv_cb_ws import listen_coinbase_order_book
+from config.settings import STALE_TIME
 
 
 # Set up logging
@@ -43,15 +44,19 @@ class LivePriceWatcher:
             if price['bid'] is None or price['ask'] is None:
                 continue
             if price['bid'] > best_bid['price'] and price['bid'] > 0:
-                best_bid = {'exchange': exchange_id, 'price': price['bid']}
+                best_bid = {'exchange': exchange_id, 'price': price['bid'], 'timestamp': price['timestamp']}
             if price['ask'] < best_ask['price'] and price['ask'] > 0:
-                best_ask = {'exchange': exchange_id, 'price': price['ask']}
+                best_ask = {'exchange': exchange_id, 'price': price['ask'], 'timestamp': price['timestamp']}
 
         return best_bid, best_ask
     
     
 async def check_opportunity_loop(watcher, taker_fee=0.001):
     logger.info("Starting check_opportunity_loop")
+    first_opportunity = None
+    fo_timestamp = None
+    opportunity = None
+    op_count = 0
     while True:
         # Only run if at least two exchanges are connected
         connected_exchanges = [ex for ex, data in watcher.prices.items() if data.get('status') == 'connected']
@@ -64,6 +69,23 @@ async def check_opportunity_loop(watcher, taker_fee=0.001):
             adj_ask = ask['price'] * (1 + taker_fee)
             profit = round(adj_bid, 2) - round(adj_ask, 2)
             if profit > 0:
+                opportunity = (
+                    ask['exchange'], ask['price'], ask['timestamp'], 
+                    bid['exchange'], bid['price'], bid['timestamp']
+                )
+                # First opportunity profit found
+                if first_opportunity is None:
+                    first_opportunity = opportunity
+                    fo_timestamp = time.time()
+                
+                if opportunity[2] < (fo_timestamp - STALE_TIME) or opportunity[5] < (fo_timestamp -STALE_TIME):
+                    # Best bid or best ask has not changed in the last STALE_TIME seconds
+                    # PENDING: Reconnect to the exchange in question
+                    continue
+                # Check if this is the first opportunity exchanges
+                if opportunity[0] == first_opportunity[0] and opportunity[3] == first_opportunity[3]:
+                    # PENDING: handle same opportunity
+                    print(f"Same opportunity found: {opportunity}")
                 logger.info(f"Arbitrage opportunity! Profit: {profit:.2f} USDT | Buy on {ask['exchange']} at {ask['price']} | Sell on {bid['exchange']} at {bid['price']} | Prices: {json.dumps(watcher.prices)}")
                 print(f"Arbitrage opportunity! Profit: {profit:.2f} USDT")
                 print(f"Buy on {ask['exchange']} at {ask['price']} | Sell on {bid['exchange']} at {bid['price']}")

@@ -12,4 +12,4 @@ RUN mkdir -p /app/logs && chmod 777 /app/logs
 RUN if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
 
 # Run your main.py script
-CMD ["python", "src/main.py"]
+CMD ["python", "-m", "src.main"]

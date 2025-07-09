@@ -5,7 +5,8 @@ import aiohttp
 import zlib
 import logging
 import time
-from logging_config import setup_logging
+from config.settings import STALE_TIME, MAX_WS_RECONNECTS
+from src.logging_config import setup_logging
 
 
 setup_logging()
@@ -45,20 +46,23 @@ async def listen_kraken_order_book(watcher, symbol=["BTC/USDT"]):
             "snapshot": True
         }
     }
-
-    snapshot = None
-    order_book = None
-    last_checksum = None
-    subscribed = False
+    reconnect_attempts = 0
+    update_reconnects = 0
     
-    while True:
+    while reconnect_attempts < MAX_WS_RECONNECTS:
+        snapshot = None
+        order_book = None
+        last_checksum = None
+        subscribed = False
+
         try:
             async with websockets.connect(ws_url) as ws:
                 await ws.send(json.dumps(subscribe_msg))
                 print("Connected to Kraken orderbook WS, subscribing...")
                 watcher.set_status("kraken", "connected")
+                reconnect_attempts = 0
                 ping_id = 1
-                while True:
+                while update_reconnects < MAX_WS_RECONNECTS:
                     try:
                         # Wait for a message or timeout for ping
                         recv_task = asyncio.create_task(ws.recv())
@@ -168,19 +172,34 @@ async def listen_kraken_order_book(watcher, symbol=["BTC/USDT"]):
                             if not pong_received:
                                 logger.exception(f"No pong received. Reconnecting...")
                                 watcher.set_status("kraken", "disconnected")
+                                update_reconnects += 1
                                 break  # Exit inner while to reconnect
                     except asyncio.TimeoutError:
                         logger.exception("Timeout waiting for message from Kraken, reconnecting...")
                         watcher.set_status("kraken", "disconnected")
                         break  # Exit inner while to reconnect
+                    except Exception as e:
+                        watcher.set_status("kraken", "disconnected")
+                        update_reconnects += 1
+                        logger.exception(f"Unexpected error: {e} | Attempt {update_reconnects}/{MAX_WS_RECONNECTS}. Last received message: {data if 'data' in locals() else 'No data variable'}")
+                        break
+
+                if update_reconnects >= MAX_WS_RECONNECTS:
+                    logger.error(f"Max update attempts ({MAX_WS_RECONNECTS}) reached.")
+                    break
+
         except (websockets.exceptions.ConnectionClosed, websockets.exceptions.ConnectionClosedOK) as e:
-            logger.exception(f"WebSocket closed: {e}. Reconnecting in 5 seconds...")
+            logger.exception(f"WebSocket closed: {e}. Attempt {reconnect_attempts}/{MAX_WS_RECONNECTS}. Reconnecting in 5 seconds...")
             watcher.set_status("kraken", "disconnected")
+            reconnect_attempts += 1
             await asyncio.sleep(5)
         except Exception as e:
-            logger.exception(f"Unexpected error: {e}. Reconnecting in 5 seconds...")
+            logger.exception(f"Unexpected error: {e}. Attempt {reconnect_attempts}/{MAX_WS_RECONNECTS}. Reconnecting in 5 seconds... Last received message: {data if 'data' in locals() else 'No data variable'}")
             watcher.set_status("kraken", "disconnected")
+            reconnect_attempts += 1
             await asyncio.sleep(5)
+    logger.error(f"Max reconnect/update attempts ({MAX_WS_RECONNECTS}) reached. Stopping Kraken order book listener.")
+    watcher.set_status("kraken", "stopped")
 
 def build_checksum_str(order_book):
     def clean(val):

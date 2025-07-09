@@ -1,7 +1,6 @@
 import ccxt.async_support as ccxt
 import asyncio
 import logging
-from config.settings import INTER_LOGGING_PATH, EXCHANGES
 import json
 import time
 import csv
@@ -12,7 +11,7 @@ __all__ = [
     'get_opportunity_for_market'
 ]
 
-file_logger = logging.getLogger(INTER_LOGGING_PATH + __name__)
+file_logger = logging.getLogger('bot_arbitratge.management.commands.best_price.' + __name__)
 
 def load_exchange_fees(path='exchange_fees.json'):
     try:
@@ -141,7 +140,7 @@ async def get_opportunity_for_market(ticker, exchanges=None, name=True, invocati
 async def main():
     # Define aquí el ticker (par de criptomonedas) y los exchanges que quieres comparar
     ticker = 'ETH/USDT'
-    exchange_list = EXCHANGES
+    exchange_list = ['binance', 'kraken', 'coinbase', 'bitfinex', 'kucoin', 'bitget', 'bybit']  # Edit list of exchanges as needed
     start = time.time()
     try:
         opportunity = await get_opportunity_for_market(ticker, exchange_list, name=True)

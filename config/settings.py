@@ -1,3 +1,2 @@
-COLLECTIONS_DIR = './'
-INTER_LOGGING_PATH = 'bot_arbitratge.management.commands.best_price.'
-EXCHANGES = ['binance', 'kraken', 'coinbase', 'bitfinex', 'kucoin', 'bitget', 'bybit']  # Edit list of exchanges as needed
+STALE_TIME = 10 #seconds
+MAX_WS_RECONNECTS = 10 #attempts
