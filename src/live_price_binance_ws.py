@@ -30,7 +30,7 @@ async def fetch_snapshot(symbol):
         async with session.get(url) as resp:
             return await resp.json()
 
-async def listen_binance_order_book(watcher, symbol="btcusdt", **kwargs):
+async def listen_binance_order_book(watcher, symbol="btcusdt", crypto="BTC", **kwargs):
     depth_url = f"wss://stream.binance.com:9443/ws/{symbol}@depth@100ms"
     reconnect_attempts = 0
     snap_reconnects = 0
@@ -153,7 +153,7 @@ async def listen_binance_order_book(watcher, symbol="btcusdt", **kwargs):
 
                         if current is None or current['bid'] != bid or current['ask'] != ask:
                             watcher.update_price('binance', bid, ask)
-                            print(f"Binance Watcher updated: highest bid={bid}, lowest ask={ask}")
+                            print(f"{crypto} Binance: highest bid={bid}, lowest ask={ask}")
                             update_reconnects = 0 
 
                     except asyncio.TimeoutError:

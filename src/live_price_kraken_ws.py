@@ -33,7 +33,7 @@ async def fetch_kraken_snapshot(symbol):
             return book
 
 
-async def listen_kraken_order_book(watcher, symbol=["BTC/USDT"]):
+async def listen_kraken_order_book(watcher, symbol=["BTC/USDT"], crypto="BTC"):
     # Kraken WebSocket API v2 endpoint
     ws_url = "wss://ws.kraken.com/v2"
     # Kraken expects symbols like XBT/USDT, ETH/USDT, etc.
@@ -146,7 +146,7 @@ async def listen_kraken_order_book(watcher, symbol=["BTC/USDT"]):
                                     current = watcher.prices.get('kraken')
                                     if current is None or current['bid'] != bid or current['ask'] != ask:
                                         watcher.update_price('kraken', bid, ask)
-                                        print(f"Kraken Watcher updated: highest bid={bid}, lowest ask={ask}")
+                                        print(f"{crypto} Kraken: highest bid={bid}, lowest ask={ask}")
                         else:
                             # No message in 10 seconds, send ping
                             ping_msg = {

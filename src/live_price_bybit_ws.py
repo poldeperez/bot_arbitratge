@@ -8,7 +8,7 @@ from src.logging_config import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
-async def listen_bybit_order_book(watcher, symbol="BTCUSDT"):
+async def listen_bybit_order_book(watcher, symbol="BTCUSDT", crypto="BTC"):
     ws_url = "wss://stream.bybit.com/v5/public/spot"
     topic = f"orderbook.50.{symbol.upper()}"
     subscribe_msg = {
@@ -93,7 +93,7 @@ async def listen_bybit_order_book(watcher, symbol="BTCUSDT"):
                             current = watcher.prices.get('bybit')
                             if current is None or current['bid'] != bid or current['ask'] != ask:
                                 watcher.update_price('bybit', bid, ask)
-                                print(f"Bybit Watcher updated: highest bid={bid}, lowest ask={ask}")
+                                print(f"{crypto} Bybit: highest bid={bid}, lowest ask={ask}")
                     except asyncio.TimeoutError:
                         logger.exception(f"No Bybit order book update for {STALE_TIME} seconds. Reconnecting...")
                         watcher.set_status("bybit", "disconnected")

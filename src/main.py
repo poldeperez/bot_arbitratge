@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 # live_price_watcher
 class LivePriceWatcher:
-    def __init__(self):
+    def __init__(self, symbol_name):
+        self.symbol = symbol_name
         self.prices = {}  # {exchange_id: {'bid': x, 'ask': y, 'timestamp': t, 'status': 'connected'/'disconnected'}}
 
     def update_price(self, exchange, bid, ask):
@@ -52,9 +53,8 @@ class LivePriceWatcher:
     
     
 async def check_opportunity_loop(watcher, taker_fee=0.001):
-    logger.info("Starting check_opportunity_loop")
+    logger.info(f"Starting check_opportunity_loop for {watcher.symbol}")
     first_opportunity = None
-    fo_timestamp = None
     opportunity = None
     op_count = 0
     while True:
@@ -65,6 +65,7 @@ async def check_opportunity_loop(watcher, taker_fee=0.001):
             continue
         bid, ask = watcher.get_best_opportunity()
         if bid['exchange'] and ask['exchange']:
+            current_time = time.time()
             adj_bid = bid['price'] * (1 - taker_fee)
             adj_ask = ask['price'] * (1 + taker_fee)
             profit = round(adj_bid, 2) - round(adj_ask, 2)
@@ -75,18 +76,30 @@ async def check_opportunity_loop(watcher, taker_fee=0.001):
                 )
                 # First opportunity profit found
                 if first_opportunity is None:
+                    print(f"First opportunity found")
                     first_opportunity = opportunity
-                    fo_timestamp = time.time()
                 
-                if opportunity[2] < (fo_timestamp - STALE_TIME) or opportunity[5] < (fo_timestamp -STALE_TIME):
-                    # Best bid or best ask has not changed in the last STALE_TIME seconds
+                # Best bid or best ask has not changed in the last STALE_TIME seconds
+                if abs(opportunity[2] - opportunity[5]) > STALE_TIME or current_time - opportunity[2] > STALE_TIME or current_time - opportunity[5] > STALE_TIME:
+                    logger.warning(f"{watcher.symbol} Opportunity stale: {opportunity}")
                     # PENDING: Reconnect to the exchange in question
+                    if opportunity[2] > opportunity[5]:
+                        watcher.set_status(bid['exchange'], 'disconnected')
+                        logger.warning(f"Disconnecting {bid['exchange']} due to stale opportunity")
+                    else:
+                        watcher.set_status(ask['exchange'], 'disconnected')
+                        logger.warning(f"Disconnecting {ask['exchange']} due to stale opportunity")
                     continue
+
                 # Check if this is the first opportunity exchanges
                 if opportunity[0] == first_opportunity[0] and opportunity[3] == first_opportunity[3]:
                     # PENDING: handle same opportunity
                     print(f"Same opportunity found: {opportunity}")
-                logger.info(f"Arbitrage opportunity! Profit: {profit:.2f} USDT | Buy on {ask['exchange']} at {ask['price']} | Sell on {bid['exchange']} at {bid['price']} | Prices: {json.dumps(watcher.prices)}")
+                if opportunity[0] != first_opportunity[0] or opportunity[3] != first_opportunity[3]:
+                    print("reset first opportunity")
+                    first_opportunity = None
+
+                logger.info(f"{watcher.symbol} Arbitrage opportunity! Profit: {profit:.2f} USDT | Buy on {ask['exchange']} at {ask['price']} | Sell on {bid['exchange']} at {bid['price']} | Current time: {current_time} | Prices: {json.dumps(watcher.prices)}")
                 print(f"Arbitrage opportunity! Profit: {profit:.2f} USDT")
                 print(f"Buy on {ask['exchange']} at {ask['price']} | Sell on {bid['exchange']} at {bid['price']}")
                 print(json.dumps(watcher.prices, indent=2))
@@ -95,14 +108,27 @@ async def check_opportunity_loop(watcher, taker_fee=0.001):
 
 async def main():
     try:
-        watcher = LivePriceWatcher()
-        await asyncio.gather(
-            listen_coinbase_order_book(watcher, symbol="ETH-USD"),
-            listen_binance_order_book(watcher, symbol="ethusdt"),
-            listen_bybit_order_book(watcher, symbol="ETHUSDT"),
-            listen_kraken_order_book(watcher, symbol=["ETH/USDT"]),
-            check_opportunity_loop(watcher, taker_fee=0.001)
-        )
+        symbols = {
+            'ETH': {
+                'coinbase': "ETH-USD",
+                'binance': "ethusdt", 
+                'bybit': "ETHUSDT",
+                'kraken': ["ETH/USDT"]
+            }
+        }
+        tasks = []
+        for symbol, config in symbols.items():
+            watcher = LivePriceWatcher(symbol)
+            tasks.extend([
+                listen_coinbase_order_book(watcher, symbol=config['coinbase'], crypto=symbol),
+                listen_binance_order_book(watcher, symbol=config['binance'], crypto=symbol),
+                listen_bybit_order_book(watcher, symbol=config['bybit'], crypto=symbol),
+                listen_kraken_order_book(watcher, symbol=config['kraken'], crypto=symbol),
+                check_opportunity_loop(watcher, taker_fee=0.001)
+            ])
+    
+        await asyncio.gather(*tasks)
+
     except asyncio.CancelledError:
         print("Tasks cancelled, exiting main")
     

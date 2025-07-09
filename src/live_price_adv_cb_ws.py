@@ -9,7 +9,7 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 # Coinbase Advanced Trade WS without authentication
-async def listen_coinbase_order_book(watcher, symbol="BTC-USD"):
+async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
     url = "wss://advanced-trade-ws.coinbase.com"
     subscribe_msg = [
         {
@@ -28,6 +28,7 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD"):
     while reconnect_attempts < MAX_WS_RECONNECTS:
         order_book = None
         expected_sequence = 0
+        count = 0
 
         try:
             async with websockets.connect(url, max_size=10 * 1024 * 1024) as ws:
@@ -106,7 +107,12 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD"):
                                         current = watcher.prices.get('coinbase')
                                         if current is None or bid != current.get('bid') or ask != current.get('ask'):
                                             watcher.update_price('coinbase', bid, ask)
-                                            print(f"Coinbase watcher updated: highest bid={bid}, lowest ask={ask}")
+                                            print(f"{crypto} Coinbase: highest bid={bid}, lowest ask={ask}")
+                                            # count += 1
+                                            # if count >50:
+                                            #     print(f"{count}")
+                                            #     watcher.update_price('coinbase', 2900.12, 3000.12)
+                                            #     await asyncio.sleep(60)
                             expected_sequence += 1
 
 
