@@ -13,3 +13,17 @@ services:
     restart: unless-stopped
     working_dir: /app
     command: python -m src.main ETH
+  bot_btc:
+    build: .
+    image: bot_btc
+    container_name: bot_btc
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config
+    environment:
+      - SYMBOL=BTC
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src
+    restart: unless-stopped
+    working_dir: /app
+    command: python -m src.main BTC
