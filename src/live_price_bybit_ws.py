@@ -27,12 +27,19 @@ async def listen_bybit_order_book(watcher, symbol="BTCUSDT", crypto="BTC"):
         try:
             async with websockets.connect(ws_url) as ws:
                 await ws.send(json.dumps(subscribe_msg))
-                watcher.set_status("bybit", "connected")
                 reconnect_attempts = 0
                 print("Connecting to Bybit orderbook WS")
                 
                 while update_reconnects < MAX_WS_RECONNECTS:
                     try:
+                        # Check if the watcher status is disconnected while running listener
+                        status = watcher.get_status("bybit")
+                        if status == "disconnected" and last_update_id is not None:
+                            logger.warning("Bybit watcher status set to 'disconnected' by main. Closing WS and reconnecting...")
+                            await ws.close()
+                            await asyncio.sleep(60)
+                            break  # Break inner loop to reconnect
+                        
                         msg = await asyncio.wait_for(ws.recv(), timeout=STALE_TIME)
                         data = json.loads(msg)
                         
@@ -53,6 +60,9 @@ async def listen_bybit_order_book(watcher, symbol="BTCUSDT", crypto="BTC"):
                                     'bids': {price: qty for price, qty in snapshot['b']},
                                     'asks': {price: qty for price, qty in snapshot['a']}
                                 }
+                            if watcher.get_status("bybit") == "disconnected":
+                                logger.info("Bybit reconnected after disconnect.")
+                            watcher.set_status("bybit", "connected")
                             # If not snapshot, skip until snapshot is received
                             continue
                         u = int(data['data']['u'])
@@ -94,6 +104,7 @@ async def listen_bybit_order_book(watcher, symbol="BTCUSDT", crypto="BTC"):
                             if current is None or current['bid'] != bid or current['ask'] != ask:
                                 watcher.update_price('bybit', bid, ask)
                                 print(f"{crypto} Bybit: highest bid={bid}, lowest ask={ask}")
+
                     except asyncio.TimeoutError:
                         logger.exception(f"No Bybit order book update for {STALE_TIME} seconds. Reconnecting...")
                         watcher.set_status("bybit", "disconnected")

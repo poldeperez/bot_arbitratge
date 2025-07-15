@@ -7,7 +7,7 @@ class MaxLevelFilter(logging.Filter):
     def filter(self, record):
         return record.levelno < self.level
 
-def setup_logging():
+def setup_logging(symbol):
     logs_dir = Path(__file__).parent.parent / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
 
@@ -17,7 +17,7 @@ def setup_logging():
 
     # Info handler
     try:
-        info_handler = logging.FileHandler(logs_dir / "arb_op.log")
+        info_handler = logging.FileHandler(logs_dir / f"arb_op_{symbol.lower()}.log")
     except Exception as e:
         print(f"Failed to create log file handler: {e}")
     info_handler.setLevel(logging.INFO)
@@ -26,7 +26,7 @@ def setup_logging():
 
     # Error handler
     try:
-        error_handler = logging.FileHandler(logs_dir / "arb_error.log")
+        error_handler = logging.FileHandler(logs_dir / f"arb_error_{symbol.lower()}.log")
     except Exception as e:
         print(f"Failed to create log file handler: {e}")
     error_handler.setLevel(logging.ERROR)

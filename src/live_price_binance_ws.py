@@ -100,6 +100,8 @@ async def listen_binance_order_book(watcher, symbol="btcusdt", crypto="BTC", **k
                                     order_book['asks'][price] = qty
                             last_update_id = data['u']
                     buffer = None  # Free memory
+                    if watcher.get_status("binance") == "disconnected":
+                        logger.info("Binance reconnected after disconnect.")
                     watcher.set_status("binance", "connected")
                     reconnect_attempts = 0
                 
@@ -110,6 +112,14 @@ async def listen_binance_order_book(watcher, symbol="btcusdt", crypto="BTC", **k
 
                 while snapshot is not None:
                     try:
+                        # Check if the watcher status is disconnected while running listener
+                        status = watcher.get_status("binance")
+                        if status == "disconnected" and last_update_id is not None:
+                            logger.warning("Binance watcher status set to 'disconnected' by main. Closing WS and reconnecting...")
+                            await ws.close()
+                            await asyncio.sleep(60)
+                            break  # Break inner loop to reconnect
+
                         msg = await asyncio.wait_for(ws.recv(), timeout=STALE_TIME)
                         data = json.loads(msg)
 

@@ -28,7 +28,6 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
     while reconnect_attempts < MAX_WS_RECONNECTS:
         order_book = None
         expected_sequence = 0
-        count = 0
 
         try:
             async with websockets.connect(url, max_size=10 * 1024 * 1024) as ws:
@@ -37,6 +36,14 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
                 print("Connecting to Coinbase WebSocket.")
                 while update_reconnects < MAX_WS_RECONNECTS:
                     try:
+                        # Check if the watcher status is disconnected while running listener
+                        status = watcher.get_status("coinbase")
+                        if status == "disconnected" and expected_sequence != 0:
+                            logger.warning("Coinbase watcher status set to 'disconnected' by main. Closing WS and reconnecting...")
+                            await ws.close()
+                            await asyncio.sleep(60)
+                            break  # Break inner loop to reconnect
+                        
                         msg = await asyncio.wait_for(ws.recv(), timeout=STALE_TIME)
                         data = json.loads(msg)
 
@@ -49,14 +56,13 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
                             if sequence_num != expected_sequence:
                                 logger.error(f"Sequence mismatch: expected {expected_sequence}, got {sequence_num}. Reconnecting Websocket...")
                                 # Clear coinbase info in watcher
-                                if hasattr(watcher, "prices") and "coinbase" in watcher.prices:
-                                    watcher.prices.pop("coinbase")
+                                watcher.prices.pop("coinbase", None)
                                 try:
                                     await ws.close()
                                 except Exception as e:
                                     logger.error(f"Error closing websocket: {e}")
                                 # Recursive call to restart the listener
-                                return await listen_coinbase_order_book(watcher, symbol)
+                                return await listen_coinbase_order_book(watcher, symbol, crypto)
 
                         if data.get("channel") == "heartbeats":
                             expected_sequence += 1
@@ -81,6 +87,9 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
                                         'asks': {price: qty for price, qty in asks}
                                     }
                                     print(f"✅ Coinbase snapshot received. Bids: {len(order_book['bids'])}, Asks: {len(order_book['asks'])}")
+                                    if watcher.get_status("coinbase") == "disconnected":
+                                        watcher.set_status("coinbase", "connected")
+                                        logger.info("Coinbase watcher reconnected after snapshot.")
                                     continue
 
                                 elif event.get("type") == "update":
@@ -108,11 +117,6 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
                                         if current is None or bid != current.get('bid') or ask != current.get('ask'):
                                             watcher.update_price('coinbase', bid, ask)
                                             print(f"{crypto} Coinbase: highest bid={bid}, lowest ask={ask}")
-                                            # count += 1
-                                            # if count >50:
-                                            #     print(f"{count}")
-                                            #     watcher.update_price('coinbase', 2900.12, 3000.12)
-                                            #     await asyncio.sleep(60)
                             expected_sequence += 1
 
 
@@ -124,6 +128,7 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
                         
                         else:
                             print(f"Wrong channel '{data.get('channel')}', skipping...")
+                        
 
                     except asyncio.TimeoutError:
                         logger.exception(f"No Coinbase order book update for {STALE_TIME} seconds. Reconnecting...")

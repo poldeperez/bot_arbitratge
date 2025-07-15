@@ -4,6 +4,8 @@ import asyncio
 import time
 import json
 import logging
+import os
+import sys
 from src.logging_config import setup_logging
 from src.live_price_binance_ws import listen_binance_order_book
 from src.live_price_bybit_ws import listen_bybit_order_book
@@ -11,6 +13,14 @@ from src.live_price_kraken_ws import listen_kraken_order_book
 from src.live_price_adv_cb_ws import listen_coinbase_order_book
 from config.settings import STALE_TIME
 
+
+def get_symbol():
+    # Prioridad: argumento de línea de comandos > variable de entorno > ETH por defecto
+    if len(sys.argv) > 1:
+        return sys.argv[1].upper()
+    return os.getenv("SYMBOL", "ETH").upper()
+
+symbol = get_symbol()
 
 # Set up logging
 setup_logging()
@@ -33,7 +43,7 @@ class LivePriceWatcher:
             self.prices[exchange] = {'bid': None, 'ask': None, 'timestamp': None, 'status': status}
 
     def get_status(self, exchange):
-        return self.prices.get(exchange, {}).get('status', 'disconnected')
+        return self.prices.get(exchange, {}).get('status', None)
 
     def get_best_opportunity(self):
         best_bid = {'exchange': None, 'price': -1}
@@ -109,11 +119,11 @@ async def check_opportunity_loop(watcher, taker_fee=0.001):
 async def main():
     try:
         symbols = {
-            'ETH': {
-                'coinbase': "ETH-USD",
-                'binance': "ethusdt", 
-                'bybit': "ETHUSDT",
-                'kraken': ["ETH/USDT"]
+            symbol: {
+                'coinbase': f"{symbol}-USD",
+                'binance': f"{symbol.lower()}usdt",
+                'bybit': f"{symbol}USDT",
+                'kraken': [f"{symbol}/USDT"]
             }
         }
         tasks = []
@@ -123,7 +133,7 @@ async def main():
                 listen_coinbase_order_book(watcher, symbol=config['coinbase'], crypto=symbol),
                 listen_binance_order_book(watcher, symbol=config['binance'], crypto=symbol),
                 listen_bybit_order_book(watcher, symbol=config['bybit'], crypto=symbol),
-                listen_kraken_order_book(watcher, symbol=config['kraken'], crypto=symbol),
+                # listen_kraken_order_book(watcher, symbol=config['kraken'], crypto=symbol),
                 check_opportunity_loop(watcher, taker_fee=0.001)
             ])
     

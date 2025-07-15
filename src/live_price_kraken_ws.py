@@ -59,11 +59,17 @@ async def listen_kraken_order_book(watcher, symbol=["BTC/USDT"], crypto="BTC"):
             async with websockets.connect(ws_url) as ws:
                 await ws.send(json.dumps(subscribe_msg))
                 print("Connected to Kraken orderbook WS, subscribing...")
-                watcher.set_status("kraken", "connected")
                 reconnect_attempts = 0
                 ping_id = 1
                 while update_reconnects < MAX_WS_RECONNECTS:
                     try:
+                        # Check if the watcher status is disconnected while running listener
+                        status = watcher.get_status("kraken")
+                        if status == "disconnected" and snapshot is not None:
+                            logger.warning("Kraken watcher status set to 'disconnected' by main. Closing WS and reconnecting...")
+                            await ws.close()
+                            await asyncio.sleep(60)
+                            break  # Break inner loop to reconnect
                         # Wait for a message or timeout for ping
                         recv_task = asyncio.create_task(ws.recv())
                         done, pending = await asyncio.wait(
@@ -99,6 +105,9 @@ async def listen_kraken_order_book(watcher, symbol=["BTC/USDT"], crypto="BTC"):
                                     }
                                     last_checksum = snapshot.get('checksum')
                                     print(f"✅ Kraken snapshot received. checksum = {last_checksum}")
+                                    if watcher.get_status("kraken") == "disconnected":
+                                        logger.info("Kraken reconnected after disconnect.")
+                                    watcher.set_status("kraken", "connected")
                                 else:
                                     continue
                             # Process updates

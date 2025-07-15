@@ -1,21 +1,15 @@
 services:
-  bot_arbitratge:
+  bot_eth:
     build: .
-    image: bot_arbitratge
-    container_name: bot
+    image: bot_eth
+    container_name: bot_eth
     volumes:
       - ./logs:/app/logs
       - ./config:/app/config
     environment:
+      - SYMBOL=ETH
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app/src
     restart: unless-stopped
-    # Uncomment and set if you want to map ports
-    # ports:
-    #   - "8000:8000"
-    # Add more volumes as needed, e.g.:
-    #   - ./data:/app/data
-    # Set user if you want to match host permissions
-    # user: "1000:1000"
     working_dir: /app
-    command: python -m src.main
+    command: python -m src.main ETH
