@@ -2,10 +2,13 @@ import json
 import websockets
 import asyncio
 import logging
+import os
 from config.settings import STALE_TIME, MAX_WS_RECONNECTS
 from src.logging_config import setup_logging
 
-setup_logging()
+sym = os.getenv("SYMBOL", "BTC")
+
+setup_logging(sym)
 logger = logging.getLogger(__name__)
 
 async def listen_bybit_order_book(watcher, symbol="BTCUSDT", crypto="BTC"):

@@ -18,12 +18,13 @@ def get_symbol():
     # Prioridad: argumento de línea de comandos > variable de entorno > ETH por defecto
     if len(sys.argv) > 1:
         return sys.argv[1].upper()
-    return os.getenv("SYMBOL", "ETH").upper()
+    return os.getenv("SYMBOL", "BTC").upper()
 
 symbol = get_symbol()
 
 # Set up logging
-setup_logging()
+sym = os.getenv("SYMBOL", "BTC")
+setup_logging(sym)
 logger = logging.getLogger(__name__)
 
 # live_price_watcher
@@ -127,12 +128,12 @@ async def main():
             }
         }
         tasks = []
-        for symbol, config in symbols.items():
-            watcher = LivePriceWatcher(symbol)
+        for sym_key, config in symbols.items():
+            watcher = LivePriceWatcher(sym_key)
             tasks.extend([
-                listen_coinbase_order_book(watcher, symbol=config['coinbase'], crypto=symbol),
-                listen_binance_order_book(watcher, symbol=config['binance'], crypto=symbol),
-                listen_bybit_order_book(watcher, symbol=config['bybit'], crypto=symbol),
+                listen_coinbase_order_book(watcher, symbol=config['coinbase'], crypto=sym_key),
+                listen_binance_order_book(watcher, symbol=config['binance'], crypto=sym_key),
+                listen_bybit_order_book(watcher, symbol=config['bybit'], crypto=sym_key),
                 # listen_kraken_order_book(watcher, symbol=config['kraken'], crypto=symbol),
                 check_opportunity_loop(watcher, taker_fee=0.001)
             ])

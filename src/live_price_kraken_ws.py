@@ -5,11 +5,14 @@ import aiohttp
 import zlib
 import logging
 import time
+import os
 from config.settings import STALE_TIME, MAX_WS_RECONNECTS
 from src.logging_config import setup_logging
 
 
-setup_logging()
+sym = os.getenv("SYMBOL", "BTC")
+
+setup_logging(sym)
 logger = logging.getLogger(__name__)
 
 depth = 25  # depth for Kraken order book

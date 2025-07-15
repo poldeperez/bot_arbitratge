@@ -3,10 +3,13 @@ import websockets
 import aiohttp
 import logging
 import asyncio
+import os
 from config.settings import STALE_TIME, MAX_WS_RECONNECTS
 from src.logging_config import setup_logging
 
-setup_logging()
+sym = os.getenv("SYMBOL", "BTC")
+
+setup_logging(sym)
 logger = logging.getLogger(__name__)
 
 # Binance ticker WS
