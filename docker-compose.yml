@@ -6,10 +6,10 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./config:/app/config
+    env_file:
+      - ./venv/.env
     environment:
       - SYMBOL=ETH
-      - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/src
     restart: unless-stopped
     working_dir: /app
     command: python -m src.main ETH
@@ -20,10 +20,10 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./config:/app/config
+    env_file:
+      - ./venv/.env
     environment:
       - SYMBOL=BTC
-      - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/src
     restart: unless-stopped
     working_dir: /app
     command: python -m src.main BTC

@@ -9,15 +9,17 @@ import os
 from config.settings import STALE_TIME, MAX_WS_RECONNECTS
 from src.logging_config import setup_logging
 from src.kcsign import KcSigner
+from dotenv import load_dotenv
+
+load_dotenv('./venv/.env')
 
 sym = os.getenv("SYMBOL", "BTC")
+KUCOIN_API_KEY = os.getenv("KUCOIN_API_KEY")
+KUCOIN_API_SECRET = os.getenv("KUCOIN_API_SECRET")
+KUCOIN_API_PASSPHRASE = os.getenv("KUCOIN_API_PASSPHRASE")
 
 setup_logging(sym)
 logger = logging.getLogger(__name__)
-
-KUCOIN_API_KEY = "6877b282c714e80001eeac9d"
-KUCOIN_API_SECRET = "55456214-961a-44f5-bac7-ed0ae1de4e19"
-KUCOIN_API_PASSPHRASE = "arbitratge"
 
 async def get_token():
     conn = http.client.HTTPSConnection("api.kucoin.com")
@@ -27,7 +29,6 @@ async def get_token():
     res = conn.getresponse()
     data = res.read()
     data_json = json.loads(data.decode("utf-8"))
-    print(data_json)
     return data_json
 
 async def fetch_snapshot(symbol):
@@ -51,6 +52,8 @@ async def fetch_snapshot(symbol):
 async def listen_kucoin_order_book(watcher, symbol="BTC-USDT", crypto="BTC", **kwargs):
     token_response = await get_token()
     token = token_response['data']['token']
+    if token:
+        print(f"Kucoin token OK")
     url = f"wss://ws-api-spot.kucoin.com?token={token}&connectId=00001"
     subscribe_msg = {
         "id": "00001",
@@ -111,7 +114,6 @@ async def listen_kucoin_order_book(watcher, symbol="BTC-USDT", crypto="BTC", **k
 
                 # 2. Process buffered messages after snapshot
                 if snapshot is not None:
-                    print(f"✅✅ Sequence {sequence}. Processing buffered messages after snapshot: {buffer}")
                     # Discard events where sequenceEnd <= sequence
                     buffer = [data for data in buffer if data['type'] not in ('welcome', 'ack') and data['data']['sequenceEnd'] > sequence]
                     # Find the first event where sequenceStart <= sequence+1 <= sequenceEnd
@@ -170,7 +172,7 @@ async def listen_kucoin_order_book(watcher, symbol="BTC-USDT", crypto="BTC", **k
                             print(f"Skipping update {end_id} as it is not newer than last_update_id {sequence}")
                             continue
                         if start_id > sequence + 1:
-                            print(f"{start_id=} > {sequence + 1=}, desync detected, resetting order book with snapshot...")
+                            print(f"{start_id=} > snapshot {sequence + 1=}, desync detected, resetting order book with snapshot...")
                             logger.exception(f"Desync kucoin detected, reseting order book with snapshot...")
                             watcher.set_status("kucoin", "disconnected")
                             snapshot = await fetch_snapshot(symbol)
