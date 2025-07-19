@@ -11,6 +11,7 @@ from src.live_price_binance_ws import listen_binance_order_book
 from src.live_price_bybit_ws import listen_bybit_order_book
 from src.live_price_kraken_ws import listen_kraken_order_book
 from src.live_price_adv_cb_ws import listen_coinbase_order_book
+from src.live_price_kucoin_ws import listen_kucoin_order_book
 from config.settings import STALE_TIME
 
 
@@ -124,7 +125,8 @@ async def main():
                 'coinbase': f"{symbol}-USD",
                 'binance': f"{symbol.lower()}usdt",
                 'bybit': f"{symbol}USDT",
-                'kraken': [f"{symbol}/USDT"]
+                'kraken': [f"{symbol}/USDT"],
+                'kucoin': f"{symbol}-USDT"
             }
         }
         tasks = []
@@ -135,6 +137,7 @@ async def main():
                 listen_binance_order_book(watcher, symbol=config['binance'], crypto=sym_key),
                 listen_bybit_order_book(watcher, symbol=config['bybit'], crypto=sym_key),
                 # listen_kraken_order_book(watcher, symbol=config['kraken'], crypto=sim_key),
+                # listen_kucoin_order_book(watcher, symbol=config['kucoin'], crypto=sym_key),
                 check_opportunity_loop(watcher, taker_fee=0.0006)
             ])
     
