@@ -1,3 +1,8 @@
-aiohttp
-websockets
 python-dotenv
+websockets
+aiohttp
+flask
+flask-login
+werkzeug
+docker
+redis>=4.0.0

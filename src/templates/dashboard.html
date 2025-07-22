@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Arbitraje Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>Bot Arbitraje Dashboard</h1>
+                <div class="header-actions">
+                    <span class="user-info">{{ user }}</span>
+                    <button class="refresh-btn" onclick="refreshAll()">Refresh</button>
+                    <a href="{{ url_for('containers') }}" class="nav-btn">Containers</a>
+                    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+                </div>
+            </div>
+            <div class="last-update" id="last-update"></div>
+        </header>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Status Grid -->
+        <div class="status-grid">
+            <div class="card">
+                <h3>Exchange Status</h3>
+                <div id="exchange-status" class="status-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+            
+            <div class="card opportunities-card">
+                <h3>Arbitrage Opportunities</h3>
+                <div class="subtitle">Found in the last 24 hours</div>
+                <div id="opportunities-summary" class="opportunities-summary">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Recent Opportunities</h3>
+                <div id="recent-opportunities" class="recent-opportunities">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Logs Section -->
+        <div class="card logs-card">
+            <h3>Log Files</h3>
+            <div class="tabs" id="log-tabs"></div>
+            <div class="logs-container" id="logs-content">
+                <div class="loading">Select a log file to view...</div>
+            </div>
+        </div>
+
+        <div class="error-section">
+            <div class="status-grid">
+                <div class="card">
+                    <h3>Error Count</h3>
+                    <div class="subtitle">Last 500 log lines</div>
+                    <div id="error-count" class="error-summary">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Recent Errors</h3>
+                    <div id="recent-errors" class="recent-errors">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

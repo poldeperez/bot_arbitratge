@@ -14,20 +14,6 @@ from dotenv import load_dotenv
 load_dotenv('./venv/.env')
 
 sym = os.getenv("SYMBOL", "BTC")
-KUCOIN_API_KEY = os.getenv("KUCOIN_API_KEY")
-KUCOIN_API_SECRET = os.getenv("KUCOIN_API_SECRET")
-KUCOIN_API_PASSPHRASE = os.getenv("KUCOIN_API_PASSPHRASE")
-
-# Añade esta validación para debugging
-print(f"DEBUG: Archivo .env path: {os.path.abspath('./venv/.env')}")
-print(f"DEBUG: Archivo .env existe: {os.path.exists('./venv/.env')}")
-print(f"DEBUG: SYMBOL: {sym}")
-print(f"DEBUG: KUCOIN_API_KEY: {KUCOIN_API_KEY[:10] if KUCOIN_API_KEY else 'None'}...")
-print(f"DEBUG: KUCOIN_API_SECRET: {KUCOIN_API_SECRET[:10] if KUCOIN_API_SECRET else 'None'}...")
-print(f"DEBUG: KUCOIN_API_PASSPHRASE: {KUCOIN_API_PASSPHRASE if KUCOIN_API_PASSPHRASE else 'None'}")
-
-if not all([KUCOIN_API_KEY, KUCOIN_API_SECRET, KUCOIN_API_PASSPHRASE]):
-    raise ValueError("ERROR: Kucoin API credentials not found in environment variables")
 
 setup_logging(sym)
 logger = logging.getLogger(__name__)
@@ -43,6 +29,11 @@ async def get_token():
     return data_json
 
 async def fetch_snapshot(symbol):
+    KUCOIN_API_KEY = os.getenv("KUCOIN_API_KEY")
+    KUCOIN_API_SECRET = os.getenv("KUCOIN_API_SECRET")
+    KUCOIN_API_PASSPHRASE = os.getenv("KUCOIN_API_PASSPHRASE")
+    if not all([KUCOIN_API_KEY, KUCOIN_API_SECRET, KUCOIN_API_PASSPHRASE]):
+        raise ValueError("ERROR: Kucoin API credentials not found in environment variables")
     url_path = f"/api/v3/market/orderbook/level2?symbol={symbol.upper()}"
     url = f"https://api.kucoin.com{url_path}"
     signer = KcSigner(

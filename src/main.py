@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sys
+import redis
 from src.logging_config import setup_logging
 from src.live_price_binance_ws import listen_binance_order_book
 from src.live_price_bybit_ws import listen_bybit_order_book
@@ -24,8 +25,7 @@ def get_symbol():
 symbol = get_symbol()
 
 # Set up logging
-sym = os.getenv("SYMBOL", "BTC")
-setup_logging(sym)
+setup_logging(symbol)
 logger = logging.getLogger(__name__)
 
 # live_price_watcher
@@ -33,16 +33,103 @@ class LivePriceWatcher:
     def __init__(self, symbol_name):
         self.symbol = symbol_name
         self.prices = {}  # {exchange_id: {'bid': x, 'ask': y, 'timestamp': t, 'status': 'connected'/'disconnected'}}
+        
+        self.redis_client = None
+        self._setup_redis()
 
+        # Path del archivo de status
+        self.status_file = f"/app/logs/status_{self.symbol}.json"
+        # En desarrollo local, usar path local
+        if not os.path.exists("/app/logs"):
+            self.status_file = f"logs/status_{self.symbol}.json"
+
+    def _setup_redis(self):
+        """Configura conexión Redis con fallback"""
+        try:
+            redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+            self.redis_client = redis.from_url(redis_url, decode_responses=True)
+            
+            # Test connection
+            self.redis_client.ping()
+            logger.info(f"Redis connected successfully for {self.symbol}")
+            
+        except Exception as e:
+            logger.warning(f"Redis connection failed for {self.symbol}: {e}")
+            logger.warning(f"Falling back to JSON files")
+            self.redis_client = None
+    
+    def _write_status_redis(self):
+        """Escribe estado a Redis con TTL"""
+        if not self.redis_client:
+            return False
+            
+        try:
+            status_data = {
+                'symbol': self.symbol,
+                'last_update': time.time(),
+                'last_update_readable': time.strftime('%Y-%m-%d %H:%M:%S'),
+                'exchanges': self.prices
+            }
+            
+            # Escribir con TTL de 60 segundos
+            key = f"status:{self.symbol}"
+            self.redis_client.setex(key, 60, json.dumps(status_data))
+            
+            # También escribir datos individuales para queries más fáciles
+            for exchange, data in self.prices.items():
+                exchange_key = f"exchange:{self.symbol}:{exchange}"
+                self.redis_client.setex(exchange_key, 60, json.dumps(data))
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error writing to Redis: {e}")
+            return False
+    
+    def _write_status_file(self):
+        """Escribe el estado actual del exchange a archivo JSON"""
+        try:
+            # Crear directorio si no existe
+            os.makedirs(os.path.dirname(self.status_file), exist_ok=True)
+            
+            # Preparar datos con metadatos
+            status_data = {
+                'symbol': self.symbol,
+                'last_update': time.time(),
+                'last_update_readable': time.strftime('%Y-%m-%d %H:%M:%S'),
+                'exchanges': self.prices
+            }
+            
+            # Escribir atómicamente (write temp + rename)
+            temp_file = f"{self.status_file}.tmp"
+            with open(temp_file, 'w') as f:
+                json.dump(status_data, f, indent=2)
+            
+            # Rename atómico
+            os.rename(temp_file, self.status_file)
+            
+        except Exception as e:
+            logger.error(f"Error writing status file {self.status_file}: {e}")
+
+    def _update_status(self):
+        """Actualiza estado usando Redis primero, JSON como fallback"""
+        redis_success = self._write_status_redis()
+        file_success = self._write_status_file()
+        
+        if not redis_success and not file_success:
+            logger.error(f"Failed to write status for {self.symbol}")
+    
     def update_price(self, exchange, bid, ask):
         # Set status to connected on price update
         self.prices[exchange] = {'bid': bid, 'ask': ask, 'timestamp': time.time(), 'status': 'connected'}
+        self._update_status()
 
     def set_status(self, exchange, status):
         if exchange in self.prices:
             self.prices[exchange]['status'] = status
         else:
             self.prices[exchange] = {'bid': None, 'ask': None, 'timestamp': None, 'status': status}
+        self._update_status()
 
     def get_status(self, exchange):
         return self.prices.get(exchange, {}).get('status', None)

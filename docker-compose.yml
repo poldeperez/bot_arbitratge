@@ -1,4 +1,14 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis_arbitrage
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
   bot_eth:
     build: .
     image: bot_eth
@@ -10,9 +20,13 @@ services:
       - ./venv/.env
     environment:
       - SYMBOL=ETH
+      - REDIS_URL=redis://redis:6379/0
     restart: unless-stopped
     working_dir: /app
     command: python -m src.main ETH
+    depends_on:
+      - redis
+
   bot_btc:
     build: .
     image: bot_btc
@@ -24,6 +38,34 @@ services:
       - ./venv/.env
     environment:
       - SYMBOL=BTC
+      - REDIS_URL=redis://redis:6379/0
     restart: unless-stopped
     working_dir: /app
     command: python -m src.main BTC
+    depends_on:
+      - redis
+
+  dashboard:
+    build: .
+    image: dashboard
+    container_name: dashboard
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./logs:/app/logs:ro
+      - ./src:/app/src
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - ./venv/.env
+    environment:
+      - FLASK_ENV=production
+      - DASHBOARD_SYMBOLS=BTC,ETH
+      - REDIS_URL=redis://redis:6379/0
+    restart: unless-stopped
+    working_dir: /app
+    command: python -m src.dashboard
+    depends_on:
+      - redis
+
+volumes:
+  redis_data:

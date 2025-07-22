@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Container Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1>Container Management</h1>
+                <div class="header-actions">
+                    <span class="user-info">{{ user }}</span>
+                    <button class="refresh-btn" onclick="refreshContainers()">Refresh</button>
+                    <a href="{{ url_for('dashboard_home') }}" class="nav-btn">Dashboard</a>
+                    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+                </div>
+            </div>
+        </header>
+
+        <div class="containers-section">
+            <div class="card">
+                <h3>Docker Containers</h3>
+                <div id="containers-list">
+                    <div class="loading">Loading containers...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function refreshContainers() {
+            try {
+                const response = await fetch('/api/containers');
+                const data = await response.json();
+                
+                const container = document.getElementById('containers-list');
+                
+                if (data.containers.length === 0) {
+                    container.innerHTML = '<div class="no-data">No containers found</div>';
+                    return;
+                }
+                
+                const containersHtml = data.containers.map(container => `
+                    <div class="container-item status-${container.status}">
+                        <div class="container-info">
+                            <h4>${container.name}</h4>
+                            <div class="container-details">
+                                <span class="container-id">ID: ${container.id}</span>
+                                <span class="container-status">Status: ${container.status}</span>
+                                <span class="container-image">Image: ${container.image}</span>
+                            </div>
+                        </div>
+                        <div class="container-actions">
+                            <button onclick="restartContainer('${container.id}')" 
+                                    class="action-btn restart-btn">Restart</button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                container.innerHTML = containersHtml;
+            } catch (error) {
+                console.error('Error fetching containers:', error);
+                document.getElementById('containers-list').innerHTML = 
+                    '<div class="error">Error loading containers</div>';
+            }
+        }
+        
+        async function restartContainer(containerId) {
+            if (!confirm('Are you sure you want to restart this container?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/containers/${containerId}/restart`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Container restarted successfully');
+                    refreshContainers();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error restarting container: ' + error);
+            }
+        }
+        
+        // Initial load
+        refreshContainers();
+        
+        // Auto refresh every 30 seconds
+        setInterval(refreshContainers, 30000);
+    </script>
+</body>
+</html>
