@@ -117,7 +117,7 @@ class DashboardManager:
         for log_file in self.get_log_files():
             lines = self.read_recent_logs(log_file, 500)
             for line in lines:
-                if "ERROR" in line.upper():
+                if re.match(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.*ERROR', line):
                     # Extraer crypto del nombre del archivo
                     crypto = "Unknown"
                     if "btc" in log_file.lower():
@@ -128,13 +128,13 @@ class DashboardManager:
                     # Extraer exchange del contenido o nombre de archivo
                     exchange = "Unknown"
                     line_lower = line.lower()
-                    if "coinbase" in line_lower or "cb" in log_file.lower():
+                    if "live_price_adv_cb_ws" in line_lower:
                         exchange = "Coinbase"
-                    elif "binance" in line_lower:
+                    elif "live_price_binance_ws" in line_lower:
                         exchange = "Binance"
-                    elif "bybit" in line_lower:
+                    elif "live_price_bybit_ws" in line_lower:
                         exchange = "Bybit"
-                    elif "kucoin" in line_lower:
+                    elif "live_price_kucoin_ws" in line_lower:
                         exchange = "Kucoin"
                     
                     key = f"{crypto}-{exchange}"
