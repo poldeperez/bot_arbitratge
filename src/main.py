@@ -46,7 +46,7 @@ class LivePriceWatcher:
     def _setup_redis(self):
         """Configura conexión Redis con fallback"""
         try:
-            redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+            redis_url = os.getenv('REDIS_URL')
             self.redis_client = redis.from_url(redis_url, decode_responses=True)
             
             # Test connection
@@ -114,22 +114,26 @@ class LivePriceWatcher:
     def _update_status(self):
         """Actualiza estado usando Redis primero, JSON como fallback"""
         redis_success = self._write_status_redis()
-        file_success = self._write_status_file()
-        
+        # Solo usar archivo si Redis falló
+        if not redis_success:
+            file_success = self._write_status_file()
+
         if not redis_success and not file_success:
             logger.error(f"Failed to write status for {self.symbol}")
     
     def update_price(self, exchange, bid, ask):
         # Set status to connected on price update
         self.prices[exchange] = {'bid': bid, 'ask': ask, 'timestamp': time.time(), 'status': 'connected'}
-        self._update_status()
+        if self.redis_client:
+            self._update_status()
 
     def set_status(self, exchange, status):
         if exchange in self.prices:
             self.prices[exchange]['status'] = status
         else:
             self.prices[exchange] = {'bid': None, 'ask': None, 'timestamp': None, 'status': status}
-        self._update_status()
+        if self.redis_client:
+            self._update_status()
 
     def get_status(self, exchange):
         return self.prices.get(exchange, {}).get('status', None)
