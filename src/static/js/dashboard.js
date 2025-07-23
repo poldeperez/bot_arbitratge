@@ -287,14 +287,18 @@ class Dashboard {
     }
     
     getLogLineClass(line) {
-        const lineUpper = line.toUpperCase();
+        // Regex para verificar que la línea empiece con timestamp (YYYY-MM-DD HH:MM:SS)
+        const timestampRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/;
         
-        if (lineUpper.includes('ERROR')) return 'error-line';
-        if (lineUpper.includes('WARNING') || lineUpper.includes('WARN')) return 'warning-line';
-        if (lineUpper.includes('INFO')) return 'info-line';
-        if (lineUpper.includes('SUCCESS') || lineUpper.includes('CONNECTED')) return 'success-line';
-        
-        return '';
+        // Solo aplicar clases si la línea tiene timestamp válido
+        if (timestampRegex.test(line)) {
+            const lineUpper = line.toUpperCase();
+            
+            if (lineUpper.includes('ERROR')) return 'error-line';
+            if (lineUpper.includes('WARNING') || lineUpper.includes('WARN')) return 'warning-line';
+            if (lineUpper.includes('INFO')) return 'info-line';
+            if (lineUpper.includes('SUCCESS') || lineUpper.includes('CONNECTED')) return 'success-line';
+        }
     }
     
     escapeHtml(text) {
