@@ -110,7 +110,7 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
                                                 order_book['asks'].pop(price, None)
                                             else:
                                                 order_book['asks'][price] = qty
-                                    # Update watcher if there are bids and asks
+                                    # Update watcher if there are bids and ask
                                     if order_book['bids'] and order_book['asks']:
                                         best_bid = max(order_book['bids'].keys(), key=lambda x: float(x))
                                         best_ask = min(order_book['asks'].keys(), key=lambda x: float(x))
@@ -121,6 +121,7 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
                                             watcher.update_price('coinbase', bid, ask)
                                             print(f"{crypto} Coinbase: highest bid={bid}, lowest ask={ask}")
                             expected_sequence += 1
+                            update_reconnects = 0
 
 
                         elif data.get("channel") == "subscriptions":
