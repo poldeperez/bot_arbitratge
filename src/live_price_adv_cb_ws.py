@@ -11,6 +11,16 @@ sym = os.getenv("SYMBOL", "BTC")
 setup_logging(sym)
 logger = logging.getLogger(__name__)
 
+# Función para determinar buffer size por crypto
+def get_buffer_size(crypto):
+    buffer_sizes = {
+        'BTC': 5 * 1024 * 1024,  # 5MB para BTC
+        'ETH': 3 * 1024 * 1024,  # 3MB para ETH
+        'default': 2 * 1024 * 1024  # 2MB para otras
+    }
+    return buffer_sizes.get(crypto, buffer_sizes['default'])
+
+
 # Coinbase Advanced Trade WS without authentication
 async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
     url = "wss://advanced-trade-ws.coinbase.com"
@@ -33,7 +43,8 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
         expected_sequence = 0
 
         try:
-            async with websockets.connect(url, max_size=3 * 1024 * 1024, ping_interval=20, ping_timeout=10) as ws:
+            buffer_size = get_buffer_size(crypto)
+            async with websockets.connect(url, max_size=buffer_size, ping_interval=20, ping_timeout=10) as ws:
                 for msg in subscribe_msg:
                     await ws.send(json.dumps(msg))
                 print("Connecting to Coinbase WebSocket.")
