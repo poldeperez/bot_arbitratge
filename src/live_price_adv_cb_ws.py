@@ -33,7 +33,7 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
         expected_sequence = 0
 
         try:
-            async with websockets.connect(url, max_size=1024 * 1024, ping_interval=20, ping_timeout=10) as ws:
+            async with websockets.connect(url, max_size=3 * 1024 * 1024, ping_interval=20, ping_timeout=10) as ws:
                 for msg in subscribe_msg:
                     await ws.send(json.dumps(msg))
                 print("Connecting to Coinbase WebSocket.")
