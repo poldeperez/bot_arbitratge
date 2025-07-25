@@ -33,7 +33,7 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
         expected_sequence = 0
 
         try:
-            async with websockets.connect(url, max_size=10 * 1024 * 1024, ping_interval=20, ping_timeout=10) as ws:
+            async with websockets.connect(url, max_size=1024 * 1024, ping_interval=20, ping_timeout=10) as ws:
                 for msg in subscribe_msg:
                     await ws.send(json.dumps(msg))
                 print("Connecting to Coinbase WebSocket.")
@@ -112,10 +112,8 @@ async def listen_coinbase_order_book(watcher, symbol="BTC-USD", crypto="BTC"):
                                                 order_book['asks'][price] = qty
                                     # Update watcher if there are bids and ask
                                     if order_book['bids'] and order_book['asks']:
-                                        best_bid = max(order_book['bids'].keys(), key=lambda x: float(x))
-                                        best_ask = min(order_book['asks'].keys(), key=lambda x: float(x))
-                                        bid = float(best_bid)
-                                        ask = float(best_ask)
+                                        bid = max(float(p) for p in order_book['bids'].keys())
+                                        ask = min(float(p) for p in order_book['asks'].keys())
                                         current = watcher.prices.get('coinbase')
                                         if current is None or bid != current.get('bid') or ask != current.get('ask'):
                                             watcher.update_price('coinbase', bid, ask)

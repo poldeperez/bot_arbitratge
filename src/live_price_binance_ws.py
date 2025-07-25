@@ -156,11 +156,8 @@ async def listen_binance_order_book(watcher, symbol="btcusdt", crypto="BTC", **k
                         last_update_id = u
 
                         # 4. Obtain best bid/ask and update
-                        best_bid = max(order_book['bids'].keys(), key=lambda x: float(x))
-                        best_ask = min(order_book['asks'].keys(), key=lambda x: float(x))
-
-                        bid = float(best_bid)
-                        ask = float(best_ask)
+                        bid = max(float(p) for p in order_book['bids'].keys())
+                        ask = min(float(p) for p in order_book['asks'].keys())
 
                         current = watcher.prices.get('binance')
 

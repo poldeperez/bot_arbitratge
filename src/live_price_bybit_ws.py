@@ -99,10 +99,8 @@ async def listen_bybit_order_book(watcher, symbol="BTCUSDT", crypto="BTC"):
 
                         # Update watcher with best bid/ask
                         if order_book['bids'] and order_book['asks']:
-                            best_bid = max(order_book['bids'].keys(), key=lambda x: float(x))
-                            best_ask = min(order_book['asks'].keys(), key=lambda x: float(x))
-                            bid = float(best_bid)
-                            ask = float(best_ask)
+                            bid = max(float(p) for p in order_book['bids'].keys())
+                            ask = min(float(p) for p in order_book['asks'].keys())
                             current = watcher.prices.get('bybit')
                             if current is None or current['bid'] != bid or current['ask'] != ask:
                                 watcher.update_price('bybit', bid, ask)

@@ -226,7 +226,7 @@ async def main():
             tasks.extend([
                 listen_coinbase_order_book(watcher, symbol=config['coinbase'], crypto=sym_key),
                 listen_binance_order_book(watcher, symbol=config['binance'], crypto=sym_key),
-                listen_bybit_order_book(watcher, symbol=config['bybit'], crypto=sym_key),
+                # listen_bybit_order_book(watcher, symbol=config['bybit'], crypto=sym_key),
                 # listen_kraken_order_book(watcher, symbol=config['kraken'], crypto=sim_key),
                 # listen_kucoin_order_book(watcher, symbol=config['kucoin'], crypto=sym_key),
                 check_opportunity_loop(watcher, taker_fee=0.0006)
